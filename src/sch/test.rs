@@ -8,35 +8,24 @@ use nom::{
     sequence::tuple,
     Needed,
 };
+use std::env;
+use std::fs::File;
 use std::io::{BufRead, BufReader, Error, ErrorKind, Read};
+use std::path::Path;
 
 #[test]
-pub fn testParsePageSetting() {
-    let mut reader = SCHBufReader::New(BufReader::new(
-        r#"
- 
-#foo 
-EESchema Schematic File Version 4
-EELAYER 30 0
-EELAYER END
-"#
-        .as_bytes(),
-    ));
+pub fn test_parse_page_settings() {
+    let mut reader = SCHBufReader::new(
+        File::open(
+            Path::new(env::var("CARGO_MANIFEST_DIR").unwrap().as_str())
+                .join("case")
+                .join("STM32H750VB-Core")
+                .join("H750_Core_v0.0")
+                .join("H750_Core.sch"),
+        )
+        .unwrap(),
+    );
     let mut screen = SCHScreen::New();
     screen.parse(&mut reader);
-}
-
-#[test]
-pub fn testNom() {
-    let tpl = tuple((be_u16, take(3u8), tag("fg")));
-    assert_eq!(
-        tpl(&b"abcdefgh"[..]),
-        Ok((&b"h"[..], (0x6162u16, &b"cde"[..], &b"fg"[..])))
-    );
-    assert_eq!(
-        tpl(&b"abcde"[..]),
-        Err(nom::Err::Incomplete(Needed::Size(2)))
-    );
-    let input = &b"abcdejk"[..];
-    assert_eq!(tpl(input), Err(nom::Err::Error((&input[5..], Tag))));
+    assert_eq!(screen.m_version, 4);
 }

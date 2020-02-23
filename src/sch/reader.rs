@@ -20,7 +20,7 @@ where
 }
 
 impl<T: Read> SCHBufReader<T> {
-    pub fn New(readable: T) -> SCHBufReader<T> {
+    pub fn new(readable: T) -> SCHBufReader<T> {
         return SCHBufReader::<T> {
             reader: Arc::new(Mutex::new(BufReader::new(readable))),
             buf: vec![],

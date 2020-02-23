@@ -2,48 +2,66 @@ use super::model::SCHScreen;
 use super::reader::SCHRead;
 use nom::{
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{alphanumeric0, digit1, line_ending, space0},
+    bytes::complete::{tag, take_till},
+    character::complete::{
+        alphanumeric0, alphanumeric1, digit1, line_ending, multispace1, not_line_ending, space0,
+    },
     combinator::map_res,
-    multi::many0,
+    error::ErrorKind,
+    multi::{fold_many0, many0, many_till},
     sequence::{preceded, terminated},
-    IResult,
+    Err as nomErr, IResult,
 };
 use std::str;
 
 pub trait SCHParseLegacy {
+    fn set_version(&mut self, version: u8);
+
     fn parse<R: SCHRead + Sized>(&mut self, reader: &mut R) {
         let all = reader.as_str().unwrap();
-        Self::parse_header(all);
+        let e = self.parse_sch(all);
+        println!("{:?}", e);
+    }
+    fn parse_sch<'a>(&mut self, input: &'a str) -> IResult<&'a str, &'a str> {
+        let (res, _) = self.parse_header(input)?;
+        Self::parse_items(res)
     }
     fn parse_empty_lines(input: &str) -> IResult<&str, Vec<&str>> {
         many0(alt((
             preceded(space0, line_ending),
-            preceded(tag("#"), terminated(alphanumeric0, line_ending)),
+            preceded(tag("#"), terminated(alphanumeric0, multispace1)),
         )))(input)
     }
-    fn parse_lines(input: &str) -> IResult<&str, Vec<&str>> {
-        many0(terminated(alphanumeric0, line_ending))(input)
+    fn parse_item_tag(input: &str) -> IResult<&str, &str> {
+        let (res, _) = Self::parse_empty_lines(input)?;
+        preceded(tag("$"), terminated(alphanumeric1, multispace1))(res)
     }
 
-    fn parse_header(input: &str) -> IResult<&str, Vec<&str>> {
-        let (res, version) = terminated(
-            preceded(
-                preceded(
-                    Self::parse_empty_lines,
-                    tag("EESchema Schematic File version"),
-                ),
-                map_res(digit1, |e: &str| u16::from_str_radix(e, 10)),
-            ),
-            line_ending,
+    fn parse_header<'a>(&mut self, input: &'a str) -> IResult<&'a str, (Vec<&'a str>, &'a str)> {
+        let (res, _) = preceded(
+            Self::parse_empty_lines,
+            tag("EESchema Schematic File Version "),
         )(input)?;
-        terminated(
-            Self::parse_lines,
+        let (res, version) = terminated(
+            map_res(digit1, |e: &str| u16::from_str_radix(e, 10)),
+            line_ending,
+        )(res)?;
+        self.set_version(version as u8);
+        many_till(
+            terminated(take_till(|e| e == '\n'), line_ending),
             terminated(tag("EELAYER END"), line_ending),
         )(res)
     }
-
-    // fn parse_page_settings(&mut self) {}
+    fn parse_items(input: &str) -> IResult<&str, &str> {
+        let (res, item_tag) = Self::parse_item_tag(input)?;
+        match item_tag {
+            "Descr" => Self::parse_page_settings(res),
+            _ => Err(nomErr::Error(("unexpected eof", ErrorKind::Eof))),
+        }
+    }
+    fn parse_page_settings(input: &str) -> IResult<&str, &str> {
+        take_till(|e| e == '1')(input)
+    }
     // fn ParseComponent(&mut self);
     // fn ParseSheet(&mut self);
     // fn ParseBitmap(&mut self);
@@ -55,4 +73,8 @@ pub trait SCHParseLegacy {
     // fn ParseBusAlias(&mut self);
 }
 
-impl SCHParseLegacy for SCHScreen {}
+impl SCHParseLegacy for SCHScreen {
+    fn set_version(&mut self, version: u8) {
+        self.m_version = version;
+    }
+}
