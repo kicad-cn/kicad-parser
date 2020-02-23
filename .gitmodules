@@ -1,0 +1,3 @@
+[submodule "case/STM32H750VB-Core"]
+	path = case/STM32H750VB-Core
+	url = git@github.com:CalciumCarbideElectronic/STM32H750VB-Core.git

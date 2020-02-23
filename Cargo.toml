@@ -1,0 +1,21 @@
+[package]
+name = "kicad-parser"
+version = "0.1.0"
+authors = ["CNLHC <2463765697@qq.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type  =["cdylib","rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+nom = "5"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
+
+
