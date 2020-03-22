@@ -3,6 +3,7 @@
 #![feature(exclusive_range_pattern)]
 use wasm_bindgen::prelude::*;
 mod sch;
+mod common;
 
 #[wasm_bindgen]
 extern "C" {

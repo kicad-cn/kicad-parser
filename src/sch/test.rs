@@ -8,6 +8,7 @@ use nom::{
     sequence::tuple,
     Needed,
 };
+use std::str::FromStr;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error, ErrorKind, Read};
@@ -26,6 +27,14 @@ pub fn test_parse_page_settings() {
         .unwrap(),
     );
     let mut screen = SCHScreen::New();
+
     screen.parse(&mut reader);
     assert_eq!(screen.m_version, 4);
+    assert_eq!(screen.m_page_info.page_type, "A4");
+    assert_eq!(screen.m_page_info.width,11693);
+    assert_eq!(screen.m_page_info.height,8268);
+    assert_eq!(screen.m_page_info.title_block["Rev"],"V0.0");
+    assert_eq!(screen.m_page_info.sheet,(1,7));
+    assert_eq!(screen.m_page_info.encoding,"utf-8");
+    assert_eq!(screen.m_page_info.title_block["Title"],"STM32H750VB Core Board");
 }
